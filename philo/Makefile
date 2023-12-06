@@ -6,7 +6,7 @@
 #    By: tnakajo <tnakajo@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/08/29 18:20:55 by tnakajo           #+#    #+#              #
-#    Updated: 2023/11/28 20:01:52 by tnakajo          ###   ########.fr        #
+#    Updated: 2023/12/06 18:15:48 by tnakajo          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,7 @@ NAME 		=	philo
 INCLUDE		=	-I ./include
 
 CC			=	cc
-CFLAGS		=	-Wall -Wextra -Werror # -fsanitize=thread
+CFLAGS		=	-Wall -Wextra -Werror -fsanitize=thread
 VALGRIND	=	valgrind
 RM			=	rm
 
@@ -32,7 +32,6 @@ VISUALIZER	=	"https://nafuka11.github.io/philosophers-visualizer/"
 all:		$(NAME)
 
 $(NAME):	$(OBJS)
-#			$(VALGRIND) $(CC) -g $(CFLAGS) $(OBJS) -o $(NAME) # --leak-check=full
 			$(CC) -g $(CFLAGS) $(OBJS) -o $(NAME)
 			@echo "-----------------------------------------------------------------------------"
 			@echo "                                                                             "
@@ -57,10 +56,8 @@ $(NAME):	$(OBJS)
 			@echo "---------------------------------"
 			@echo "Type: % ./philo number_of_philosophers time_to_die time_to_eat time_to_sleep"
 			@echo "Visualizer: " $(VISUALIZER)
-			@echo "Example: valgrind --leak-check=full ./philo 4 310 200 100 2 | grep eating -wc"
+			@echo "Example: ./philo 4 310 200 100 2 | grep eating -wc"
 
-
-#  $(OBJS_DIR)%.o : $(SRCS_DIR)%.c ${INCLUDE}
 $(OBJS_DIR)%.o : $(SRCS_DIR)%.c ./include/philo.h
 			@mkdir -p $(@D)
 			$(CC) -g $(INCLUDE) -c $< -o $@

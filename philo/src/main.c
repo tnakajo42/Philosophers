@@ -6,7 +6,7 @@
 /*   By: tnakajo <tnakajo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/29 18:58:30 by tnakajo           #+#    #+#             */
-/*   Updated: 2023/11/27 22:02:09 by tnakajo          ###   ########.fr       */
+/*   Updated: 2023/12/06 18:10:10 by tnakajo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,38 +14,40 @@
 
 int	main(int ac, char **av)
 {
-	t_philo		*philo;
-	pthread_t	philo_thread_id;
-	int			philo_thread;
+	t_philo		*ph;
+	int			i;
 
-	philo = (t_philo *)malloc(sizeof(t_philo));
-	if (philo == NULL)
-		return (printf("Failed to allocate memory for philo\n"));
-	philo_thread = pthread_create(&philo_thread_id, NULL, ft_thread, NULL);
-	if (philo_thread != 0)
+	i = -1;
+	ph = (t_philo *)malloc(sizeof(t_philo));
+	if (ph == NULL || (ac < 5 || ac > 6))
+		return (printf("Failed to allocate memory or arguments error\n"));
+	if (!init_philo(ph, av, -1))
 	{
-		free (philo);
-		return (printf("error creating thread\n"));
+		while (++i < ph->nop)
+		{
+			pthread_mutex_init(&ph->status[i].status_mutex, NULL);
+			pthread_create(&ph->status[i].threads, NULL, \
+				ft_thread, &ph->status[i]);
+			pthread_mutex_init(&ph->fork[i].status_mutex, NULL);
+			pthread_mutex_lock(&ph->fork[i].status_mutex);
+			pthread_create(&ph->fork[i].fork_threads, NULL, \
+				ft_thread, &ph->status[i]);
+		}
+		open_restaurant(ph, -1, -1);
 	}
-	pthread_join(philo_thread_id, NULL);
-	if (pthread_mutex_init(&philo->status_mutex, NULL) || (ac < 5 || ac > 6))
-	{
-		free (philo);
-		return (printf("mutex error or arguments error\n"));
-	}
-	init_philo(philo, av, -1);
-	pthread_mutex_destroy(&philo->status_mutex);
-	free(philo->status);
-	free(philo->fork);
-	free(philo);
+	free(ph->status);
+	free(ph->fork);
+	free(ph);
 	return (0);
 }
-
-void	*ft_thread(void *arg)
-{
-	usleep(10000);
-	return (arg);
-}
+/* Below program is not needed ...!!
+	i = -1;
+	while (++i < ph->nop)
+	{
+		pthread_mutex_destroy(&ph->status[i].status_mutex);
+		pthread_mutex_destroy(&ph->fork[i].status_mutex);
+	}
+*/
 
 int	init_philo(t_philo *philo, char **av, int i)
 {
@@ -63,17 +65,43 @@ int	init_philo(t_philo *philo, char **av, int i)
 		return (printf("malloc error...!!\n"));
 	if (!philo->nop || !philo->ttd || !philo->tte || !philo->tts || !philo->nom)
 		return (printf("arguments seem not correct\n"));
+	philo->init_time = get_time();
+	philo->time = 0;
 	while (++i < philo->nop)
 	{
 		philo->status[i].p_no = i + 1;
-		philo->status[i].status = 't';
-		philo->status[i].time = philo->ttd;
-		philo->status[i].life = philo->ttd;
+		if ((i == 0 || (i % 2 == 0 && i + 1 != philo->nop)) && philo->nop != 1)
+			philo->status[i].status = 'E';
+		else
+			philo->status[i].status = 'T';
 	}
-	philo->init_time = get_time();
-	philo->time = get_time() - philo->init_time;
-	open_restaurant(philo);
 	return (0);
+}
+
+void	*ft_thread(void *arg)
+{
+	t_status	*ph;
+
+	ph = (t_status *) arg;
+	if (ph->status == 'T')
+	{
+		printf("%u %u is thinking\n", ph->init_time, ph->p_no);
+		ph->status = 't';
+	}
+	else if (ph->status == 'S')
+	{
+		printf("%u %i is sleeping\n", ph->init_time, ph->p_no);
+		ph->status = 's';
+	}
+	else if (ph->status == 'E')
+	{
+		ph->status = 'e';
+		printf("%u %i has taken a fork\n", ph->time, ph->p_no);
+		printf("%u %i has taken a fork\n", ph->time, ph->p_no);
+		printf("%u %i is eating\n", ph->init_time, ph->p_no);
+	}
+	usleep(1);
+	return (NULL);
 }
 
 int	ph_atoi(const char *str)

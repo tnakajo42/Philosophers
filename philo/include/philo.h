@@ -6,7 +6,7 @@
 /*   By: tnakajo <tnakajo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/29 18:20:50 by tnakajo           #+#    #+#             */
-/*   Updated: 2023/11/27 20:46:21 by tnakajo          ###   ########.fr       */
+/*   Updated: 2023/12/06 18:07:24 by tnakajo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,28 +30,30 @@
  * 		E -> ready to eat
  * 		e -> is eating
  * 		D -> ready to die
+ * 	eat_times: philo's times to eat at the restaurant
  * 	time: philo's time to do next action 
  * 	life: philo's time to die
- * 	eat_times: philo's times to eat at the restaurant
 */
 typedef struct s_status
 {
 	unsigned int	p_no;
 	char			status;
+	int				eat_times;
 	unsigned int	time;
 	unsigned int	life;
-	int				eat_times;
+	unsigned int	init_time;
+	pthread_mutex_t	status_mutex;
+	pthread_t		threads;
 }				t_status;
 
 /**
- * 	nof : number of forks
  * 	nofu: number of forks in use
 */
 typedef struct s_fork
 {
-	int				nof;
 	int				nofiu;
 	pthread_mutex_t	status_mutex;
+	pthread_t		fork_threads;
 }				t_fork;
 
 /**
@@ -73,7 +75,6 @@ typedef struct s_philo
 	t_fork			*fork;
 	unsigned int	time;
 	unsigned int	init_time;
-	pthread_mutex_t	status_mutex;
 }				t_philo;
 
 /**
@@ -90,12 +91,14 @@ int		init_philo(t_philo *philo, char **argv, int i);
 void	*ft_thread(void *arg);
 int		ph_atoi(const char *nptr);
 time_t	get_time(void);
+void	*ft_thread(void *arg);
 
 /* open restaurant */
-void	open_restaurant(t_philo *ph);
-int		serve_food(t_philo *ph, int i);
+void	open_restaurant(t_philo *ph, int i, int j);
+int		serve_food(t_philo *ph, int i, int j);
 int		what_philo_do(t_philo *ph, int i);
-int		print_status(t_philo *ph, int i);
+int		print_status(t_philo *ph, int i, int j);
+void	*fork_thread(void *arg);
 void	take_two_forks(t_philo *ph, int i);
 
 #endif

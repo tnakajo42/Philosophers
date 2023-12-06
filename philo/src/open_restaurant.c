@@ -6,37 +6,38 @@
 /*   By: tnakajo <tnakajo@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/29 18:20:44 by tnakajo           #+#    #+#             */
-/*   Updated: 2023/11/27 21:50:31 by tnakajo          ###   ########.fr       */
+/*   Updated: 2023/12/06 18:06:54 by tnakajo          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	open_restaurant(t_philo *ph)
+void	open_restaurant(t_philo *ph, int i, int j)
 {
-	int				i;
-
-	i = -1;
-	ph->fork->nof = ph->nop;
-	ph->fork->nofiu = 0;
+	ph->fork->nofiu = ph->nop;
+	if (ph->nop % 2 == 1)
+		ph->fork->nofiu--;
 	ph->nofp = 0;
-	pthread_mutex_lock(&ph->status_mutex);
 	while (++i < ph->nop)
 	{
-		ph->status[i].eat_times = 0;
-		if ((i == 0 || (i % 2 == 0 && i + 1 != ph->nop)) && ph->nop != 1)
-			serve_food(ph, i);
-		else
-			printf("%i %i is thinking\n", ph->time, i + 1);
+		ph->status[i].time = ph->tte;
+		ph->status[i].init_time = 0;
+		ph->status[i].life = ph->ttd;
+		pthread_mutex_lock(&ph->status[i].status_mutex);
+		pthread_join(ph->status[i].threads, NULL);
+		pthread_join(ph->fork[i].fork_threads, NULL);
 	}
 	while (42)
 	{
-		pthread_mutex_unlock(&ph->status_mutex);
-		usleep(42);
+		while (++j < ph->nop)
+			pthread_mutex_unlock(&ph->status[j].status_mutex);
 		ph->time = get_time() - ph->init_time;
-		pthread_mutex_lock(&ph->status_mutex);
+		j = -1;
+		while (++j < ph->nop)
+			pthread_mutex_lock(&ph->status[j].status_mutex);
 		if (what_philo_do(ph, -1))
 			return ;
+		j = -1;
 	}
 }
 
@@ -48,7 +49,7 @@ int	what_philo_do(t_philo *ph, int i)
 			ph->status[i].status = 'S';
 		else if (ph->status[i].status == 's' && ph->time >= ph->status[i].time)
 			ph->status[i].status = 'T';
-		else if (ph->status[i].status == 't' && ph->status[i].life <= ph->time)
+		else if (ph->status[i].life <= ph->time)
 			ph->status[i].status = 'D';
 		else if (ph->status[i].status == 't' && ph->nop != 1)
 		{
@@ -62,19 +63,22 @@ int	what_philo_do(t_philo *ph, int i)
 				&& i != 0 && ph->status[i - 1].status != 'e')
 				ph->status[i].status = 'E';
 		}
-		if (print_status(ph, i))
+		if (print_status(ph, i, -1))
 			return (1);
 	}
 	return (0);
 }
 
-int	print_status(t_philo *ph, int i)
+int	print_status(t_philo *ph, int i, int j)
 {
 	if (ph->status[i].status == 'D')
 	{
-		printf("%u %i died\n", ph->time, i + 1);
-		pthread_mutex_unlock(&ph->status_mutex);
-		return (1);
+		while (++j < ph->nop)
+		{
+			pthread_mutex_unlock(&ph->status[j].status_mutex);
+			pthread_mutex_unlock(&ph->fork[j].status_mutex);
+		}
+		return (printf("%u %i died\n", ph->time, i + 1));
 	}
 	if (ph->status[i].status == 'S')
 	{
@@ -89,12 +93,12 @@ int	print_status(t_philo *ph, int i)
 		ph->status[i].status = 't';
 	}
 	if (ph->status[i].status == 'E')
-		if (serve_food(ph, i))
+		if (serve_food(ph, i, -1))
 			return (1);
 	return (0);
 }
 
-int	serve_food(t_philo *ph, int i)
+int	serve_food(t_philo *ph, int i, int j)
 {
 	ph->status[i].status = 'e';
 	take_two_forks(ph, i);
@@ -106,7 +110,11 @@ int	serve_food(t_philo *ph, int i)
 		ph->nofp++;
 	if (ph->nofp == ph->nop)
 	{
-		pthread_mutex_unlock(&ph->status_mutex);
+		while (++j < ph->nop)
+		{
+			pthread_mutex_unlock(&ph->status[j].status_mutex);
+			pthread_mutex_unlock(&ph->fork[j].status_mutex);
+		}
 		return (1);
 	}
 	return (0);
@@ -119,7 +127,7 @@ void	take_two_forks(t_philo *ph, int i)
 	j = 0;
 	while (j < 2)
 	{
-		if (ph->fork->nofiu < ph->fork->nof)
+		if (ph->fork->nofiu < ph->nop)
 			printf("%u %i has taken a fork\n", ph->time, i + 1);
 		else
 			printf("%u %i is looking a fork\n", ph->time, i + 1);
