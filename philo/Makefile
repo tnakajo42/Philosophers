@@ -14,7 +14,7 @@ NAME 		=	philo
 INCLUDE		=	-I ./include
 
 CC			=	cc
-CFLAGS		=	-Wall -Wextra -Werror -fsanitize=thread
+CFLAGS		=	-Wall -Wextra -Werror # -fsanitize=thread
 VALGRIND	=	valgrind
 RM			=	rm
 
